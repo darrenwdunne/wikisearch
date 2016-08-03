@@ -1,23 +1,13 @@
 $(document).ready(function() {
   $('#inputSearch').focus();
-  // $('#searchResultsDiv').css({
-  //   display: "none",
-  //   visibility: "hidden"
-  // });
   showSearchResults(false);
 });
-
-var wikiURL = 'https://en.wikipedia.org/w/api.php?action=query&titles=Main%20Page&prop=revisions&rvprop=content'
-
-// $.getJSON('https://en.wikipedia.org/w/api.php?format=json&action=query&generator=search&gsrsearch=starwars&callback=?', function(data) {
-//   $('p').html(JSON.stringify(data));
-//   console.log(data);
-// });
 
 $(document).keypress(function(e) {
   if (e.which == 13) {
     // enter pressed
     console.log('Enter pressed');
+    processEnter();
   }
 });
 
@@ -33,7 +23,6 @@ $('#inputSearch').on('input', function(data) {
 
 function queryWiki(searchString) {
   $.getJSON('https://en.wikipedia.org/w/api.php?format=json&action=query&generator=search&gsrsearch=' + searchString + '&callback=?', function(data) {
-    //    parseSearchResults(data);
     $('#searchResultsTableHolder').empty();
     makeTable($('#searchResultsTableHolder'), data);
   });
@@ -41,12 +30,10 @@ function queryWiki(searchString) {
 
 function makeTable(container, data) {
   var table = $('<table/>').addClass('table table-striped table-bordered table-condensed');
-  //  table.addClass('table table-striped table-bordered');
-  table.append('<thead><tr><th>Page Title</th><th>ID</th></tr></thead><tbody>');
+  table.append('<thead class="thead-inverse"><tr><th>Page Title</th><th>ID</th></tr></thead><tbody>');
 
   $.each(data.query.pages, function(k, v) {
-    var row = $('<tr/>');
-    row.append('<td>' + v.title + '</td><td>' + v.pageid + '</td>');
+    var row = generateTableRow(v.title, v.pageid);
     table.append(row);
   });
   table.append('</tbody>');
@@ -54,15 +41,34 @@ function makeTable(container, data) {
   return container.append(table);
 }
 
+function generateTableRow(title, pageid) {
+  var pageURL = 'https://en.wikipedia.org/?curid=' + pageid;
+  var a = '<a href="' + pageURL + '" target="blank">' + title + '</a>';
+  var row = $('<tr/>');
+  row.append('<td>' + a + '</td><td>' + pageid + '</td>');
+  return row;
+}
+
 function showSearchResults(show) {
   if (show) {
     $('#searchResultsDiv').show();
+    $('#helpBlock').show();
   } else {
     $('#searchResultsDiv').hide();
+    $('#helpBlock').hide();
   }
 }
 
-function onError(json) {
-  console.log(json);
-  debugger;
+function processEnter() {
+  // if the table is visible, auto-launch the first URL in the table
+  var firstLink = $('#searchResultsTableHolder table a:first');
+  if (firstLink !== undefined) {
+    var win = window.open(firstLink[0], '_blank');
+    if (win) {
+      win.focus();
+    } else {
+      //Browser has blocked it
+      alert('Please allow popups');
+    }
+  }
 }
