@@ -24,12 +24,30 @@ $('#inputSearch').on('input', function(data) {
 function queryWiki(searchString) {
   $.getJSON('https://en.wikipedia.org/w/api.php?format=json&action=query&generator=search&gsrsearch=' + searchString + '&callback=?', function(data) {
     $('#searchResultsTableHolder').empty();
-    makeTable($('#searchResultsTableHolder'), data);
+
+    if (data.query === undefined) {
+      showSearchError(true);
+    } else {
+      showSearchError(false);
+      makeTable($('#searchResultsTableHolder'), data);
+    }
   });
 }
 
+function showSearchError(err) {
+  if (err) {
+    $('.form-group').addClass('has-error');
+    $('#helpBlock').text('Not found in Wikipedia');
+    $('#searchResultsDiv').hide();
+//    $('#inputSearch').addClass('')
+  } else {
+    $('.form-group').removeClass('has-error');
+  }
+}
+
+
 function makeTable(container, data) {
-  var table = $('<table/>').addClass('table table-striped table-bordered table-condensed');
+  var table = $('<table id="searchResultsTable"/>').addClass('table table-hover table-striped table-bordered table-condensed');
   table.append('<thead class="thead-inverse"><tr><th>Page Title</th><th>ID</th></tr></thead><tbody>');
 
   $.each(data.query.pages, function(k, v) {
@@ -52,23 +70,44 @@ function generateTableRow(title, pageid) {
 function showSearchResults(show) {
   if (show) {
     $('#searchResultsDiv').show();
+    $('#helpBlock').text('Tip: hit Enter to automatically open the first item');
     $('#helpBlock').show();
+
+    // Interesting: jQuery cannot find the rows yet - need to delay until the table has been added to the DOM
+    setTimeout(attachListenersToTableRows, 200);
   } else {
     $('#searchResultsDiv').hide();
     $('#helpBlock').hide();
   }
 }
 
+function attachListenersToTableRows() {
+  $('#searchResultsTable tr').click(function() {
+    var row = $(this).find("a");
+    if (row !== undefined) {
+      var href = row.attr("href");
+      if (href !== undefined) {
+        openURL(href);
+      }
+    }
+  });
+}
+
 function processEnter() {
   // if the table is visible, auto-launch the first URL in the table
   var firstLink = $('#searchResultsTableHolder table a:first');
   if (firstLink !== undefined) {
-    var win = window.open(firstLink[0], '_blank');
-    if (win) {
-      win.focus();
-    } else {
-      //Browser has blocked it
-      alert('Please allow popups');
-    }
+    openURL(firstLink[0]);
   }
+}
+
+function openURL(url) {
+  var win = window.open(url, '_blank');
+  if (win) {
+    win.focus();
+  } else {
+    //Browser has blocked it
+    alert('Please allow popups');
+  }
+
 }
